@@ -1,13 +1,13 @@
 const jwt = require('jsonwebtoken');
 
-const ACCESS_SECRET = process.env.ACCESS_SECRET || 'access_secret';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'refresh_secret';
+const ACCESS_SECRET = process.env.ACCESS_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
 // Generate access token (fresh = true or false)
 function generateAccessToken(user, isFresh = true) {
   return jwt.sign(
     {
-      id: user.id,
+      id: user?._id,
       fresh: isFresh, // custom claim
     },
     ACCESS_SECRET,
@@ -19,7 +19,7 @@ function generateAccessToken(user, isFresh = true) {
 function generateRefreshToken(user) {
   return jwt.sign(
     {
-      id: user._id,
+      id: user?._id,
     },
     REFRESH_SECRET,
     { expiresIn: '7d' }

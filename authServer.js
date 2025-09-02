@@ -1,8 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const authRoutes = require("./routes/auth");
-const profileRoutes = require("./routes/profile");
+const cors = require('cors');
+const authRoutes = require("./routes/authRouter");
 const logger = require("./utils/logger");
 const { connectDB } = require("./config/configDB");
 
@@ -23,12 +23,8 @@ app.use((req, res, next) => {
   })
   next()
 })
-
-logger.info("good message!!!");
-
-app.use("/feed",profileRoutes);
-app.use("/auth", authRoutes);
-
+app.use(cors());
+app.use("/api", require("./routes/apiRouter"));
 connectDB()
   .then(() => {
     console.log("MongoDB connected");
