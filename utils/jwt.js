@@ -1,32 +1,36 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const RefreshToken = require("../models/refreshTokenModel");
 
 const ACCESS_SECRET = process.env.ACCESS_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
-// Generate access token (fresh = true or false)
+// Generate short-lived Access Token
 function generateAccessToken(user, isFresh = true) {
   return jwt.sign(
-    {
-      id: user?._id,
-      fresh: isFresh, // custom claim
-    },
+    { id: user?._id, fresh: isFresh },
     ACCESS_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: "15m" }
   );
 }
 
-// Generate refresh token (only to get new access tokens)
-function generateRefreshToken(user) {
-  return jwt.sign(
-    {
-      id: user?._id,
-    },
-    REFRESH_SECRET,
-    { expiresIn: '7d' }
-  );
+// Generate Refresh Token (random string, then hash & save in DB)
+async function generateRefreshToken(user) {
+  const refreshTokenValue = crypto.randomBytes(40).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(refreshTokenValue).digest("hex");
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  await RefreshToken.create({
+    userId: user._id,
+    tokenHash,
+    expiresAt
+  });
+
+  return refreshTokenValue; // return plain token to client
 }
 
 module.exports = {
   generateAccessToken,
-  generateRefreshToken,
+  generateRefreshToken
 };

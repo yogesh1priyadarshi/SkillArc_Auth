@@ -1,10 +1,11 @@
-const User = require("../models/User");
+const User = require("../models/authModel");
 const bcrypt = require('bcrypt');
 const {
   generateAccessToken,
   generateRefreshToken,
 } = require("../utils/jwt");
 const sendEmail = require("../utils/email");
+const refreshTokenModel = require("../models/refreshTokenModel");
 
 const signup = async (req, res) => {
   try {
@@ -31,16 +32,14 @@ const signup = async (req, res) => {
       password:passwordHash,
     });
     const userSaved = await user.save();
-     await sendEmail(
-      email,
-      "Welcome to MyApp 🎉",
-      "Thanks for signing up!",
-      `<h1>Welcome!</h1><p>Thanks for signing up to MyApp.</p>`
-    );
     return res.status(200).json({
       successful:true,
       message:"user saved!!",
-      userSaved
+      user:{
+        userId: userSaved?._id,
+        fullName: userSaved?.fullName,
+        email: userSaved?.email,
+      }
     });
 
   } catch (err) {
@@ -50,6 +49,7 @@ const signup = async (req, res) => {
       message: "Email already exists",
     });
   }
+  console.error(err);
   return res.status(500).json({
     success: false,
     message: "Internal server error",
@@ -86,11 +86,11 @@ const login = async (req, res) => {
     }
    
     // Generate JWT token for authentication
-     const accessToken = generateAccessToken(user,true);
-     const refreshToken = generateRefreshToken(user);
+
+  const accessToken = generateAccessToken(user, true);
+  const refreshToken = await generateRefreshToken(user);
     // Add last login timestamp
-    user.lastLogin = new Date();
-    await user.save();
+    await user.updateLastLogin();
 
     // Send successful response with token
     return res.status(200).json({
@@ -110,4 +110,24 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = {signup, login};
+async function logout(req, res) {
+  try{
+    const { refreshToken } = req.body;
+  if (refreshToken) {
+    const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+    await refreshTokenModel.deleteOne({ tokenHash });
+  }
+  res.status(200).json({ success:true, message: "Logged out" });
+
+  }catch(err){
+    res.status(500).json({
+      success:false,
+      message:"something went wrong"
+    })
+
+  }
+  
+}
+
+
+module.exports = {signup, login, logout};
