@@ -33,7 +33,7 @@ const signup = async (req, res) => {
     });
     const userSaved = await user.save();
     return res.status(200).json({
-      successful:true,
+      success:true,
       message:"user saved!!",
       user:{
         userId: userSaved?._id,
@@ -62,7 +62,7 @@ const login = async (req, res) => {
     if (!email ) {
       return res.status(400).json({
         successful:false,
-        message: "Email   is required for login",
+        message: "Email is required for login",
       });
     }
     // Also check if the email exists
@@ -71,10 +71,16 @@ const login = async (req, res) => {
     if(!user){
       return res.status(400).json({
         successful:false,       
-        message: "email is not found!!!",
+        message: "user is not found!!!",
       });
     }
     
+        if(!user.isEmailVerified){
+          return res.status(400).json({
+            success:false,
+            message:"email id is not verified"
+          })
+        }
     // password check;
     const passwordHash = user?.password;
     const isMatch = await bcrypt.compare(password,passwordHash);
@@ -94,18 +100,22 @@ const login = async (req, res) => {
 
     // Send successful response with token
     return res.status(200).json({
-      successful:true,
+      success:true,
       data: {
         accessToken,
         refreshToken,
-        user,
+        user:{
+          id:user._id,
+          email:user.email,
+          fullName:user.fullName
+        }
       },
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       successful:false, 
       message: "An error occurred during login",
-      error: error.message,
     });
   }
 };

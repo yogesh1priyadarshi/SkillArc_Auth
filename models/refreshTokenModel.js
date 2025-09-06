@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
 const refreshTokenSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "Auth", required: true },
   token: { type: String, required: true },
-  expiresAt: { type: Date, required: true }
+  expiresAt: { type: Date, required: true },
 });
 
 // Optional: auto-delete expired tokens (TTL index)

@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const User = require("../models/authModel");
 const { sendOTP } = require("../utils/email");
 const { default: axios } = require("axios");
+const publishUserCreated = require("../utils/rabbitQM");
 
 const sendOTPForEmailVarification = async (req, res) => {
   try {
@@ -40,7 +41,7 @@ const sendOTPForEmailVarification = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Signup successful. Please check your email for the OTP.",
+      message: " Please check your email for the OTP.",
     });
   } catch (err) {
     console.log(err);
@@ -66,7 +67,6 @@ const verifyOTPForEmailVarification = async (req, res) => {
         message: "user is not available in database.",
       });
     }
-
     const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
 
     // Check if expired
@@ -80,14 +80,22 @@ const verifyOTPForEmailVarification = async (req, res) => {
     }
     await user.emailVerification(true);
 
-    const update = await axios.post("http://localhost:2001/api/user/createAccount",{userId:user?._id,email:user?.email});
+   // const update = await axios.post("http://localhost:2001/api/user/createAccount",{userId:user?._id,email:user?.email});
     // ✅ OTP is valid
-    console.log(update);
+    // Publish event to RabbitMQ
+    await publishUserCreated({
+      id: user._id,
+      email: user.email,
+      name: user.fullName,
+    });
+
+    // console.log("User microservice response:", update.data);
+    // console.log(update);
     res
       .status(200)
       .json({ success: true, message: "OTP verified successfully" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     return res.status(500).json({
       success: false,
       message: "something went error",
